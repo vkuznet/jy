@@ -20,6 +20,9 @@ build_amd64: build_linux
 build_darwin:
 	go clean; rm -rf pkg jy; GOOS=darwin CGO_ENABLED=0 go build -o jy ${flags}
 
+build_darwin_arm64:
+	go clean; rm -rf pkg jy; GOARCH=arm64 GOOS=darwin CGO_ENABLED=0 go build -o jy ${flags}
+
 build_linux:
 	go clean; rm -rf pkg jy; GOOS=linux CGO_ENABLED=0 go build -o jy ${flags}
 
