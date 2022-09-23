@@ -12,7 +12,10 @@ import (
 
 // fileExist checks if file exists
 func fileExist(path string) bool {
-	_, err := os.Stat(path)
+	finfo, err := os.Stat(path)
+	if finfo.Size() == 0 {
+		return false
+	}
 	return !errors.Is(err, os.ErrNotExist)
 }
 
@@ -81,6 +84,29 @@ func convertYaml2Json(yamlFile, jsonFile string) error {
 	}
 	var record map[interface{}]interface{}
 	err = yaml.Unmarshal(data, &record)
+	if err != nil {
+		// try to load list of records
+		var records []map[interface{}]interface{}
+		err = yaml.Unmarshal(data, &records)
+		if err != nil {
+			return err
+		}
+		var out []map[string]interface{}
+		for _, r := range records {
+			out = append(out, convertYaml(r))
+		}
+		data, err = json.Marshal(out)
+		if err != nil {
+			return err
+		}
+		file, err := os.Create(jsonFile)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		file.Write(data)
+		return nil
+	}
 	jsonData := convertYaml(record)
 	data, err = json.Marshal(jsonData)
 	if err != nil {
