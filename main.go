@@ -23,6 +23,7 @@ func info() string {
 	return fmt.Sprintf("auth-proxy-server git=%s go=%s date=%s", version, goVersion, tstamp)
 }
 
+// main function
 func main() {
 	var jsonFile string
 	flag.StringVar(&jsonFile, "json", "", "json file")
@@ -48,6 +49,7 @@ func fileExist(path string) bool {
 	return !errors.Is(err, os.ErrNotExist)
 }
 
+// helper function to convert json to yaml and vice versa
 func convert(jsonFile, yamlFile string) error {
 	if fileExist(jsonFile) {
 		fmt.Printf("Convert %s to %s\n", jsonFile, yamlFile)
@@ -60,6 +62,7 @@ func convert(jsonFile, yamlFile string) error {
 	return errors.New(msg)
 }
 
+// helper function to read file content
 func readFile(fname string) ([]byte, error) {
 	file, err := os.Open(fname)
 	if err != nil {
@@ -70,6 +73,7 @@ func readFile(fname string) ([]byte, error) {
 	return data, err
 }
 
+// helper function to convert json to yaml file
 func convertJson2Yaml(jsonFile, yamlFile string) error {
 	data, err := readFile(jsonFile)
 	if err != nil {
@@ -78,6 +82,9 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 	var record map[string]interface{}
 	err = json.Unmarshal(data, &record)
 	data, err = yaml.Marshal(record)
+	if err != nil {
+		return err
+	}
 	file, err := os.Create(yamlFile)
 	if err != nil {
 		return err
@@ -87,14 +94,19 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 	return nil
 }
 
+// helper function to convert yaml to json file
 func convertYaml2Json(yamlFile, jsonFile string) error {
 	data, err := readFile(yamlFile)
 	if err != nil {
 		return err
 	}
-	var record map[string]interface{}
+	var record map[interface{}]interface{}
 	err = yaml.Unmarshal(data, &record)
-	data, err = json.Marshal(record)
+	jsonData := convertYaml(record)
+	data, err = json.Marshal(jsonData)
+	if err != nil {
+		return err
+	}
 	file, err := os.Create(jsonFile)
 	if err != nil {
 		return err
@@ -102,4 +114,18 @@ func convertYaml2Json(yamlFile, jsonFile string) error {
 	defer file.Close()
 	file.Write(data)
 	return nil
+}
+
+// helper function to convert yaml map to json map interface
+func convertYaml(m map[interface{}]interface{}) map[string]interface{} {
+	res := map[string]interface{}{}
+	for k, v := range m {
+		switch v2 := v.(type) {
+		case map[interface{}]interface{}:
+			res[fmt.Sprint(k)] = convertYaml(v2)
+		default:
+			res[fmt.Sprint(k)] = v
+		}
+	}
+	return res
 }
