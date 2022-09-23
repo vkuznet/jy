@@ -22,7 +22,6 @@ jobs:
 
     - name: Build
       run: |
-        mkdir jy_{amd64,darwin,power8,arm64,windows}
         echo "AMD64 build"
         make build_amd64;   mv jy jy_amd64
 
