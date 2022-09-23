@@ -48,9 +48,21 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 	}
 	var record map[string]interface{}
 	err = json.Unmarshal(data, &record)
-	data, err = yaml.Marshal(record)
 	if err != nil {
-		return err
+		// try to load the list of records
+		var records []map[string]interface{}
+		if e := json.Unmarshal(data, &records); e != nil {
+			return err
+		}
+		data, err = yaml.Marshal(records)
+		if err != nil {
+			return err
+		}
+	} else {
+		data, err = yaml.Marshal(record)
+		if err != nil {
+			return err
+		}
 	}
 	file, err := os.Create(yamlFile)
 	if err != nil {
