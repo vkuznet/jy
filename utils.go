@@ -21,12 +21,15 @@ func fileExist(path string) bool {
 
 // helper function to convert json to yaml and vice versa
 func convert(jsonFile, yamlFile string) error {
-	if fileExist(jsonFile) {
+	if fileExist(jsonFile) && fileExist(yamlFile) {
+		msg := fmt.Sprintf("Both input files %s and %s exist, please provide one non-existing input to perform conversion", jsonFile, yamlFile)
+		return errors.New(msg)
+	} else if fileExist(jsonFile) {
 		fmt.Printf("Convert %s to %s\n", jsonFile, yamlFile)
 		return convertJson2Yaml(jsonFile, yamlFile)
 	} else if fileExist(yamlFile) {
 		fmt.Printf("Convert %s to %s\n", yamlFile, jsonFile)
-		return convertYaml2Json(yamlFile, jsonFile)
+		return convertMap2Json(yamlFile, jsonFile)
 	}
 	msg := fmt.Sprintf("Neither %s or %s exist\n", jsonFile, yamlFile)
 	return errors.New(msg)
@@ -49,11 +52,11 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 	if err != nil {
 		return err
 	}
-	var record map[string]interface{}
+	var record map[string]any
 	err = json.Unmarshal(data, &record)
 	if err != nil {
 		// try to load the list of records
-		var records []map[string]interface{}
+		var records []map[string]any
 		if e := json.Unmarshal(data, &records); e != nil {
 			return err
 		}
@@ -77,23 +80,23 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 }
 
 // helper function to convert yaml to json file
-func convertYaml2Json(yamlFile, jsonFile string) error {
+func convertMap2Json(yamlFile, jsonFile string) error {
 	data, err := readFile(yamlFile)
 	if err != nil {
 		return err
 	}
-	var record map[interface{}]interface{}
+	var record map[any]any
 	err = yaml.Unmarshal(data, &record)
 	if err != nil {
 		// try to load list of records
-		var records []map[interface{}]interface{}
+		var records []map[any]any
 		err = yaml.Unmarshal(data, &records)
 		if err != nil {
 			return err
 		}
-		var out []map[string]interface{}
+		var out []map[string]any
 		for _, r := range records {
-			out = append(out, convertYaml(r))
+			out = append(out, convertMap(r))
 		}
 		data, err = json.Marshal(out)
 		if err != nil {
@@ -107,7 +110,7 @@ func convertYaml2Json(yamlFile, jsonFile string) error {
 		file.Write(data)
 		return nil
 	}
-	jsonData := convertYaml(record)
+	jsonData := convertMap(record)
 	data, err = json.Marshal(jsonData)
 	if err != nil {
 		return err
@@ -122,12 +125,12 @@ func convertYaml2Json(yamlFile, jsonFile string) error {
 }
 
 // helper function to convert yaml map to json map interface
-func convertYaml(m map[interface{}]interface{}) map[string]interface{} {
-	res := map[string]interface{}{}
+func convertMap(m map[any]any) map[string]any {
+	res := map[string]any{}
 	for k, v := range m {
 		switch v2 := v.(type) {
-		case map[interface{}]interface{}:
-			res[fmt.Sprint(k)] = convertYaml(v2)
+		case map[any]any:
+			res[fmt.Sprint(k)] = convertMap(v2)
 		default:
 			res[fmt.Sprint(k)] = v
 		}
