@@ -94,7 +94,8 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 			// try to load list of basic data-types, e.g. list of ints or strings
 			var records []any
 			if err := json.Unmarshal(data, &records); err != nil {
-				return wrapError(err, "record is not []any or []map[string]any or map[string]any")
+				msg := fmt.Sprintf("record is not []any or []map[string]any or map[string]any but %s of type %T", string(data), data)
+				return wrapError(err, msg)
 			}
 			data, err = yaml.Marshal(records)
 			if err != nil {
