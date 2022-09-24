@@ -128,7 +128,16 @@ func convertYaml2Json(yamlFile, jsonFile string) error {
 		var records []map[any]any
 		err = yaml.Unmarshal(data, &records)
 		if err != nil {
-			return wrapError(err, "input data is not map[any]any or []map[any]any")
+			var records []any
+			err = yaml.Unmarshal(data, &records)
+			if err != nil {
+				return wrapError(err, "input data is not map[any]any or []map[any]any or []any")
+			}
+			data, err = json.Marshal(records)
+			if err != nil {
+				return err
+			}
+			return writeFile(jsonFile, data)
 		}
 		var out []map[string]any
 		for _, r := range records {
