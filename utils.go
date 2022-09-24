@@ -13,6 +13,9 @@ import (
 // fileExist checks if file exists
 func fileExist(path string) bool {
 	finfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
 	if finfo.Size() == 0 {
 		return false
 	}
@@ -55,14 +58,23 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 	var record map[string]any
 	err = json.Unmarshal(data, &record)
 	if err != nil {
-		// try to load the list of records
+		// try to load the list of map records
 		var records []map[string]any
-		if e := json.Unmarshal(data, &records); e != nil {
-			return err
-		}
-		data, err = yaml.Marshal(records)
-		if err != nil {
-			return err
+		if err := json.Unmarshal(data, &records); err != nil {
+			// try to load list of basic data-types, e.g. list of ints or strings
+			var records []any
+			if err := json.Unmarshal(data, &records); err != nil {
+				return wrapError(err, "record is not []any or []map[string]any or map[string]any")
+			}
+			data, err = yaml.Marshal(records)
+			if err != nil {
+				return wrapError(err, "unable to marshal []any")
+			}
+		} else {
+			data, err = yaml.Marshal(records)
+			if err != nil {
+				return wrapError(err, "unable to marshal []map[string]any")
+			}
 		}
 	} else {
 		data, err = yaml.Marshal(record)
@@ -77,6 +89,11 @@ func convertJson2Yaml(jsonFile, yamlFile string) error {
 	defer file.Close()
 	file.Write(data)
 	return nil
+}
+
+// helper function to wrap error
+func wrapError(err error, msg string) error {
+	return errors.New(fmt.Sprintf("%s, %s", err, msg))
 }
 
 // helper function to convert yaml to json file
